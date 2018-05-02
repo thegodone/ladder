@@ -137,6 +137,9 @@ class StackedDecoders(torch.nn.Module):
             else:
                 ones = Variable(torch.ones(z_pre.size()[0], 1))
             mean = torch.mean(z_pre, 0)
+            print mean
+            #mean1 = torch.mean(z_pre, 1)
+            #print mean1
             noise_var = np.random.normal(loc=0.0, scale=1 - 1e-10, size=z_pre.size())
             if self.use_cuda:
                 var = np.var(z_pre.data.cpu().numpy() + noise_var, axis=0).reshape(1, z_pre.size()[1])
@@ -147,7 +150,13 @@ class StackedDecoders(torch.nn.Module):
                 hat_z = hat_z.cpu()
                 ones = ones.cpu()
                 mean = mean.cpu()
-            hat_z_normalized = torch.div(hat_z - ones.mm(mean), ones.mm(torch.sqrt(var + 1e-10)))
+            #print "hat:"+str(hat_z.size())
+            #print "var:"+str(var.size())
+            #print "mean:"+str(mean.size())
+            #print "ones:"+str(ones.size())
+            #print "ones*mean:"+str(ones.mm(mean.unsqueeze(0)).size())
+            hat_z_normalized = torch.div(hat_z - ones.mm(mean.unsqueeze(0)), ones.mm(torch.sqrt(var + 1e-10)))
+            print hat_z_normalized  
             if self.use_cuda:
                 hat_z_normalized = hat_z_normalized.cuda()
             hat_z_layers_normalized.append(hat_z_normalized)
