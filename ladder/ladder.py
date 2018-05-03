@@ -1,12 +1,10 @@
 from __future__ import print_function
-
 import numpy as np
 import argparse
 import pickle
 import os
 
 import torch
-from torch.autograd import Variable
 from torch.optim import Adam
 from torch.utils.data import TensorDataset, DataLoader
 from encoder import StackedEncoders
@@ -55,14 +53,12 @@ def evaluate_performance(ladder, valid_loader, e, agg_cost_scaled, agg_supervise
     correct = 0.
     total = 0.
     for batch_idx, (data, target) in enumerate(valid_loader):
-        if args.cuda:
-            data = data.cuda()
-        data, target = Variable(data), Variable(target)
+        data = data.to(args.cuda)
+        #data, target = Variable(data), Variable(target)
         output = ladder.forward_encoders_clean(data)
         # TODO: Do away with the below hack for GPU tensors.
-        if args.cuda:
-            output = output.cpu()
-            target = target.cpu()
+        output = output.to('cpu')
+        target = target.to('cpu')
         output = output.data.numpy()
         preds = np.argmax(output, axis=1)
         target = target.data.numpy()
@@ -85,7 +81,7 @@ def main():
     parser.add_argument("--data_dir", type=str, default="data")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--u_costs", type=str, default="0.1, 0.1, 0.1, 0.1, 0.1, 10., 1000.")
-    parser.add_argument("--cuda", type=bool, default=False)
+    parser.add_argument("--cuda", type=str, default='cpu')
     parser.add_argument("--decay_epoch", type=int, default=15)
     args = parser.parse_args()
 
@@ -94,9 +90,9 @@ def main():
     noise_std = args.noise_std
     seed = args.seed
     decay_epoch = args.decay_epoch
-    if args.cuda and not torch.cuda.is_available():
+    if torch.cuda.is_available():
         print("WARNING: torch.cuda not available, using CPU.\n")
-        args.cuda = False
+        args.cuda = 'cpu'
 
     print("=====================")
     print("BATCH SIZE:", batch_size)
@@ -108,8 +104,9 @@ def main():
     print("=====================\n")
 
     np.random.seed(seed)
-    torch.manual_seed(seed)
-    if args.cuda:
+    if args.cuda == 'cpu':
+        torch.manual_seed(seed)
+    else:
         torch.cuda.manual_seed(seed)
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
@@ -157,8 +154,11 @@ def main():
     loss_supervised = torch.nn.CrossEntropyLoss()
     loss_unsupervised = torch.nn.MSELoss()
 
-    if args.cuda:
-        ladder.cuda()
+    if args.cuda == 'cpu':
+        print("cpu")
+    else:
+        print("gpu")
+        ladder.to(args.cuda)
 
     assert len(unsupervised_costs_lambda) == len(decoder_sizes) + 1
     assert len(encoder_sizes) == len(decoder_sizes)
@@ -207,17 +207,16 @@ def main():
             labelled_start = batch_size * ind_labelled
             labelled_end = batch_size * (ind_labelled + 1)
             ind_labelled += 1
-            batch_train_labelled_images = torch.FloatTensor(train_labelled_images[labelled_start:labelled_end])
-            batch_train_labelled_labels = torch.LongTensor(train_labelled_labels[labelled_start:labelled_end])
+            batch_train_labelled_images = torch.Tensor(train_labelled_images[labelled_start:labelled_end])
+            batch_train_labelled_labels = torch.tensor(train_labelled_labels[labelled_start:labelled_end], dtype=torch.long)
 
-            if args.cuda:
-                batch_train_labelled_images = batch_train_labelled_images.cuda()
-                batch_train_labelled_labels = batch_train_labelled_labels.cuda()
-                unlabelled_images = unlabelled_images.cuda()
+            batch_train_labelled_images = batch_train_labelled_images.to(args.cuda)
+            batch_train_labelled_labels = batch_train_labelled_labels.to(args.cuda)
+            unlabelled_images = unlabelled_images.to(args.cuda)
 
-            labelled_data = Variable(batch_train_labelled_images, requires_grad=False)
-            labelled_target = Variable(batch_train_labelled_labels, requires_grad=False)
-            unlabelled_data = Variable(unlabelled_images)
+            labelled_data = batch_train_labelled_images
+            labelled_target = batch_train_labelled_labels
+            unlabelled_data = unlabelled_images
 
             optimizer.zero_grad()
 
@@ -260,9 +259,9 @@ def main():
             cost.backward()
             optimizer.step()
 
-            agg_cost += cost.data[0]
-            agg_supervised_cost += cost_supervised.data[0]
-            agg_unsupervised_cost += cost_unsupervised.data[0]
+            agg_cost += cost.item()
+            agg_supervised_cost += cost_supervised.item()
+            agg_unsupervised_cost += cost_unsupervised.item()
             num_batches += 1
 
             if ind_labelled == ind_limit:

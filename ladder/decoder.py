@@ -12,30 +12,18 @@ class Decoder(torch.nn.Module):
         self.d_out = d_out
         self.use_cuda = use_cuda
 
-        if self.use_cuda:
-            self.a1 = Parameter(0. * torch.ones(1, d_in).cuda())
-            self.a2 = Parameter(1. * torch.ones(1, d_in).cuda())
-            self.a3 = Parameter(0. * torch.ones(1, d_in).cuda())
-            self.a4 = Parameter(0. * torch.ones(1, d_in).cuda())
-            self.a5 = Parameter(0. * torch.ones(1, d_in).cuda())
+        self.a1 = Parameter(0. * torch.ones(1, d_in).to(use_cuda))
+        self.a2 = Parameter(1. * torch.ones(1, d_in).to(use_cuda))
+        self.a3 = Parameter(0. * torch.ones(1, d_in).to(use_cuda))
+        self.a4 = Parameter(0. * torch.ones(1, d_in).to(use_cuda))
+        self.a5 = Parameter(0. * torch.ones(1, d_in).to(use_cuda))
 
-            self.a6 = Parameter(0. * torch.ones(1, d_in).cuda())
-            self.a7 = Parameter(1. * torch.ones(1, d_in).cuda())
-            self.a8 = Parameter(0. * torch.ones(1, d_in).cuda())
-            self.a9 = Parameter(0. * torch.ones(1, d_in).cuda())
-            self.a10 = Parameter(0. * torch.ones(1, d_in).cuda())
-        else:
-            self.a1 = Parameter(0. * torch.ones(1, d_in))
-            self.a2 = Parameter(1. * torch.ones(1, d_in))
-            self.a3 = Parameter(0. * torch.ones(1, d_in))
-            self.a4 = Parameter(0. * torch.ones(1, d_in))
-            self.a5 = Parameter(0. * torch.ones(1, d_in))
+        self.a6 = Parameter(0. * torch.ones(1, d_in).to(use_cuda))
+        self.a7 = Parameter(1. * torch.ones(1, d_in).to(use_cuda))
+        self.a8 = Parameter(0. * torch.ones(1, d_in).to(use_cuda))
+        self.a9 = Parameter(0. * torch.ones(1, d_in).to(use_cuda))
+        self.a10 = Parameter(0. * torch.ones(1, d_in).to(use_cuda))
 
-            self.a6 = Parameter(0. * torch.ones(1, d_in))
-            self.a7 = Parameter(1. * torch.ones(1, d_in))
-            self.a8 = Parameter(0. * torch.ones(1, d_in))
-            self.a9 = Parameter(0. * torch.ones(1, d_in))
-            self.a10 = Parameter(0. * torch.ones(1, d_in))
 
 
         if self.d_out is not None:
@@ -48,11 +36,7 @@ class Decoder(torch.nn.Module):
         self.buffer_hat_z_l = None
 
     def g(self, tilde_z_l, u_l):
-        if self.use_cuda:
-            ones = Parameter(torch.ones(tilde_z_l.size()[0], 1).cuda())
-        else:
-            ones = Parameter(torch.ones(tilde_z_l.size()[0], 1))
-
+        ones = Parameter(torch.ones(tilde_z_l.size()[0], 1).to(self.use_cuda))
         b_a1 = ones.mm(self.a1)
         b_a2 = ones.mm(self.a2)
         b_a3 = ones.mm(self.a3)
@@ -132,10 +116,7 @@ class StackedDecoders(torch.nn.Module):
         assert len(hat_z_layers) == len(z_pre_layers)
         hat_z_layers_normalized = []
         for i, (hat_z, z_pre) in enumerate(zip(hat_z_layers, z_pre_layers)):
-            if self.use_cuda:
-                ones = Variable(torch.ones(z_pre.size()[0], 1).cuda())
-            else:
-                ones = Variable(torch.ones(z_pre.size()[0], 1))
+            ones = torch.ones(z_pre.size()[0], 1).to(self.use_cuda)
             mean = torch.mean(z_pre, 0)
             #print mean
             #mean1 = torch.mean(z_pre, 1)
@@ -145,11 +126,10 @@ class StackedDecoders(torch.nn.Module):
                 var = np.var(z_pre.data.cpu().numpy() + noise_var, axis=0).reshape(1, z_pre.size()[1])
             else:
                 var = np.var(z_pre.data.numpy() + noise_var, axis=0).reshape(1, z_pre.size()[1])
-            var = Variable(torch.FloatTensor(var))
-            if self.use_cuda:
-                hat_z = hat_z.cpu()
-                ones = ones.cpu()
-                mean = mean.cpu()
+            var = torch.Tensor(var)
+            hat_z = hat_z.cpu()
+            ones = ones.cpu()
+            mean = mean.cpu()
             #print "hat:"+str(hat_z.size())
             #print "var:"+str(var.size())
             #print "mean:"+str(mean.size())
@@ -157,7 +137,6 @@ class StackedDecoders(torch.nn.Module):
             #print "ones*mean:"+str(ones.mm(mean.unsqueeze(0)).size())
             hat_z_normalized = torch.div(hat_z - ones.mm(mean.unsqueeze(0)), ones.mm(torch.sqrt(var + 1e-10)))
             #print hat_z_normalized  
-            if self.use_cuda:
-                hat_z_normalized = hat_z_normalized.cuda()
+            hat_z_normalized = hat_z_normalized.to(self.use_cuda)
             hat_z_layers_normalized.append(hat_z_normalized)
         return hat_z_layers_normalized
