@@ -265,7 +265,7 @@ def main():
             agg_unsupervised_cost += cost_unsupervised.item()
             num_batches += 1
 
-            if ind_labelled == ind_limit and batch_idx % 10 == 0:
+            if ind_labelled == ind_limit and batch_idx % 20 == 0:
                 # Evaluation
                 ladder.eval()
                 evaluate_performance(batch_idx, ladder, validation_loader, e,
