@@ -274,7 +274,7 @@ def main():
                                      agg_unsupervised_cost / num_batches,
                                      args)
                 ladder.train()
-        torch.save(ladder.state_dict(),  "model.iter-" + str(epoch))
+        torch.save(ladder.state_dict(),  "model.iter-" + str(e))
     print("=====================\n")
     print("Done :)")
 
