@@ -48,13 +48,12 @@ class Ladder(torch.nn.Module):
         return self.de.bn_hat_z_layers(hat_z_layers, z_pre_layers)
 
 
-def evaluate_performance(ladder, valid_loader, e, agg_cost_scaled, agg_supervised_cost_scaled,
+def evaluate_performance(batchidx, ladder, valid_loader, e, agg_cost_scaled, agg_supervised_cost_scaled,
                          agg_unsupervised_cost_scaled, args):
     correct = 0.
     total = 0.
     for batch_idx, (data, target) in enumerate(valid_loader):
         data = data.to(args.cuda)
-        #data, target = Variable(data), Variable(target)
         output = ladder.forward_encoders_clean(data)
         # TODO: Do away with the below hack for GPU tensors.
         output = output.to('cpu')
@@ -66,6 +65,7 @@ def evaluate_performance(ladder, valid_loader, e, agg_cost_scaled, agg_supervise
         total += target.shape[0]
 
     print("Epoch:", e + 1, "\t",
+          "BID:", batchidx + 1, "\t",
           "Total Cost:", "{:.4f}".format(agg_cost_scaled), "\t",
           "Supervised Cost:", "{:.4f}".format(agg_supervised_cost_scaled), "\t",
           "Unsupervised Cost:", "{:.4f}".format(agg_unsupervised_cost_scaled), "\t",
@@ -265,12 +265,13 @@ def main():
             if ind_labelled == ind_limit:
                 # Evaluation
                 ladder.eval()
-                evaluate_performance(ladder, validation_loader, e,
+                evaluate_performance(batch_idx, ladder, validation_loader, e,
                                      agg_cost / num_batches,
                                      agg_supervised_cost / num_batches,
                                      agg_unsupervised_cost / num_batches,
                                      args)
                 ladder.train()
+        torch.save(ladder.state_dict(),  "model.iter-" + str(epoch))
     print("=====================\n")
     print("Done :)")
 
