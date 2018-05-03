@@ -94,6 +94,7 @@ def main():
     if not torch.cuda.is_available():
         args.cuda = 'cpu'
 
+
     print("=====================")
     print("BATCH SIZE:", batch_size)
     print("EPOCHS:", epochs)
@@ -264,7 +265,7 @@ def main():
             agg_unsupervised_cost += cost_unsupervised.item()
             num_batches += 1
 
-            if ind_labelled == ind_limit:
+            if ind_labelled == ind_limit and batch_idx % 10 == 0:
                 # Evaluation
                 ladder.eval()
                 evaluate_performance(batch_idx, ladder, validation_loader, e,
