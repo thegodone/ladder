@@ -91,6 +91,8 @@ def main():
     seed = args.seed
     decay_epoch = args.decay_epoch
 
+    if not torch.cuda.is_available():
+        args.cuda = 'cpu'
 
     print("=====================")
     print("BATCH SIZE:", batch_size)
