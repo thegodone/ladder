@@ -90,9 +90,7 @@ def main():
     noise_std = args.noise_std
     seed = args.seed
     decay_epoch = args.decay_epoch
-    if torch.cuda.is_available():
-        print("WARNING: torch.cuda not available, using CPU.\n")
-        args.cuda = 'cpu'
+
 
     print("=====================")
     print("BATCH SIZE:", batch_size)
