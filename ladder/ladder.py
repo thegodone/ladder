@@ -83,6 +83,8 @@ def main():
     parser.add_argument("--u_costs", type=str, default="0.1, 0.1, 0.1, 0.1, 0.1, 10., 1000.")
     parser.add_argument("--cuda", type=str, default='cpu')
     parser.add_argument("--decay_epoch", type=int, default=15)
+    parser.add_argument("--eval", type=int, default=50)
+
     args = parser.parse_args()
 
     batch_size = args.batch
@@ -265,7 +267,7 @@ def main():
             agg_unsupervised_cost += cost_unsupervised.item()
             num_batches += 1
 
-            if ind_labelled == ind_limit and batch_idx % 20 == 0:
+            if ind_labelled == ind_limit and batch_idx % args.eval == 0:
                 # Evaluation
                 ladder.eval()
                 evaluate_performance(batch_idx, ladder, validation_loader, e,
